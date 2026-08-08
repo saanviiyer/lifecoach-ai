@@ -1,5 +1,8 @@
 # LifeCoach AI
 
+> Tell it your goals and get a full roadmap with daily objectives, plus shared chat rooms for teams.
+
+
 Tell LifeCoach AI your biggest ambition and it produces a complete, phased **roadmap** — milestones, a
 week-by-week timeline, and concrete **daily objectives** you can check off (progress persists in your
 browser). Then open a **collaborative coaching room**: anyone with the link joins the same real-time
