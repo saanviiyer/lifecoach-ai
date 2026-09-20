@@ -3,7 +3,7 @@
 > Tell it your goals and get a full roadmap with daily objectives, plus shared chat rooms for teams.
 
 
-Tell LifeCoach AI your biggest ambition and it produces a complete, phased **roadmap** — milestones, a
+Tell LifeCoach AI your biggest ambition and it produces a complete, phased **roadmap**, milestones, a
 week-by-week timeline, and concrete **daily objectives** you can check off (progress persists in your
 browser). Then open a **collaborative coaching room**: anyone with the link joins the same real-time
 chat about the goal, and the AI participates as a coach.
@@ -15,19 +15,19 @@ and returns a realistic, structured roadmap and canned coach replies so the whol
 
 ## Features
 
-1. **Goal intake** — free-text ambition, target timeframe, current situation, and constraints.
-2. **Roadmap generator** — 3–5 phases, each with milestones and a timeline; the first phase includes
+1. **Goal intake**: free-text ambition, target timeframe, current situation, and constraints.
+2. **Roadmap generator**: 3–5 phases, each with milestones and a timeline; the first phase includes
    daily objectives. Rendered as a timeline + checklist UI; objective progress is saved to
    `localStorage`.
-3. **Collaborative shared chat** — in-memory "rooms". Share the room link/id and everyone joins the
+3. **Collaborative shared chat**: in-memory "rooms". Share the room link/id and everyone joins the
    same chat; messages are broadcast to all participants in real time over WebSocket. The AI coach
    replies in the room.
-4. **Server-side Anthropic calls** — roadmap generation and coaching both call the Anthropic API from
+4. **Server-side Anthropic calls**: roadmap generation and coaching both call the Anthropic API from
    the backend using the official `@anthropic-ai/sdk` with model `claude-sonnet-5`.
 
 ---
 
-## Quick start (mock mode — no key needed)
+## Quick start (mock mode: no key needed)
 
 ```bash
 npm install
@@ -45,7 +45,7 @@ The header shows a **"Mock mode"** badge when no key is set.
 1. Generate a roadmap, then click **"Open shared coaching room"** (or just open the app and use a
    `?room=<id>` link).
 2. Click **"Copy invite link"** and open it in a second browser window / tab.
-3. Enter a name in each window and chat — messages appear in both instantly, and the AI coach replies
+3. Enter a name in each window and chat: messages appear in both instantly, and the AI coach replies
    to the room.
 
 ## Running with a real Anthropic key
@@ -101,7 +101,7 @@ lifecoach-ai/
   response.
 
 **Mock mode:** `server/ai.js` checks `process.env.ANTHROPIC_API_KEY`. If unset, `MOCK_MODE` is true and
-the Anthropic client is never constructed — `generateRoadmap()` returns a structured templated roadmap
+the Anthropic client is never constructed, `generateRoadmap()` returns a structured templated roadmap
 built from the user's inputs, and `coachReply()` returns context-aware canned replies.
 
 **Ports:** backend `3001` (override with `PORT`), client dev server `5173`.
@@ -139,7 +139,7 @@ docker run -p 3001:3001 -e ANTHROPIC_API_KEY=sk-ant-... lifecoach-ai   # live
 
 ### Render (Blueprint)
 
-`render.yaml` defines a Node web service — build `npm install && npm run build`, start `npm start`, with
+`render.yaml` defines a Node web service, build `npm install && npm run build`, start `npm start`, with
 `ANTHROPIC_API_KEY` as a dashboard-set secret (`sync:false`). Point Render at the repo and deploy the
 Blueprint; Render injects `PORT` automatically and WebSocket upgrades work on the same origin.
 
@@ -147,7 +147,7 @@ Blueprint; Render injects `PORT` automatically and WebSocket upgrades work on th
 
 ## Notes
 
-- Rooms are **in-memory** — they reset when the server restarts and are reclaimed when empty. This is
+- Rooms are **in-memory**: they reset when the server restarts and are reclaimed when empty. This is
   intentional for a lightweight demo; swap in Redis/a database for persistence.
 - Model id is `claude-sonnet-5`, read server-side only. The key never reaches the browser.
 
@@ -155,11 +155,11 @@ Blueprint; Render injects `PORT` automatically and WebSocket upgrades work on th
 
 `npm audit` originally reported 2 advisories in **build-time-only** transitive deps (both under `vite`):
 
-- **esbuild ≤0.24.2 (moderate)** — dev-server request SSRF. **Resolved**: pinned via a `package.json`
+- **esbuild ≤0.24.2 (moderate)**: dev-server request SSRF. **Resolved**: pinned via a `package.json`
   `overrides` field to `esbuild ^0.25.0`. Build and mock-mode start both pass with the override.
-- **vite ≤6.4.2 (high)** — dev-server path traversal / `server.fs.deny` bypass (Windows). **Left as-is
+- **vite ≤6.4.2 (high)**: dev-server path traversal / `server.fs.deny` bypass (Windows). **Left as-is
   and accepted.** The only fix is `vite@8` (a breaking major upgrade, applied only by `npm audit fix
-  --force`), which we deliberately do not take. This advisory affects the **Vite dev server only** — it
+  --force`), which we deliberately do not take. This advisory affects the **Vite dev server only**. It
   is never run in production. Production serves the pre-built static `dist/` through Express, so the
   vulnerable dev-server code path is never reachable in a deployed instance.
 
