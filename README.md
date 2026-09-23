@@ -1,167 +1,92 @@
 # LifeCoach AI
 
-> Tell it your goals and get a full roadmap with daily objectives, plus shared chat rooms for teams.
-
-
-Tell LifeCoach AI your biggest ambition and it produces a complete, phased **roadmap**, milestones, a
-week-by-week timeline, and concrete **daily objectives** you can check off (progress persists in your
-browser). Then open a **collaborative coaching room**: anyone with the link joins the same real-time
-chat about the goal, and the AI participates as a coach.
-
-It runs end-to-end with **zero setup**. If no Anthropic API key is present, it drops into **mock mode**
-and returns a realistic, structured roadmap and canned coach replies so the whole app is clickable.
-
----
+You tell LifeCoach AI a goal. It makes a phased roadmap with milestones and a week-by-week timeline. The roadmap also lists daily objectives that you can check off. You can also open a shared chat room about the goal, where an AI coach takes part.
 
 ## Features
 
-1. **Goal intake**: free-text ambition, target timeframe, current situation, and constraints.
-2. **Roadmap generator**: 3–5 phases, each with milestones and a timeline; the first phase includes
-   daily objectives. Rendered as a timeline + checklist UI; objective progress is saved to
-   `localStorage`.
-3. **Collaborative shared chat**: in-memory "rooms". Share the room link/id and everyone joins the
-   same chat; messages are broadcast to all participants in real time over WebSocket. The AI coach
-   replies in the room.
-4. **Server-side Anthropic calls**: roadmap generation and coaching both call the Anthropic API from
-   the backend using the official `@anthropic-ai/sdk` with model `claude-sonnet-5`.
+- Goal intake. You enter a free-text goal, a target timeframe, your current situation and your constraints.
+- Roadmap generator. The roadmap has 3 to 5 phases. Each phase has milestones and a timeline. The first phase also has daily objectives. The UI shows a timeline and a checklist. The browser saves objective progress in `localStorage`.
+- Shared chat rooms. Rooms live in server memory. Everyone who opens the room link joins the same chat. The server sends each message to all participants over WebSocket. The AI coach replies in the room.
+- The backend makes all Anthropic calls with the official `@anthropic-ai/sdk` and the model `claude-sonnet-5`. The key stays on the server and never reaches the browser.
 
----
+The app needs no setup. With no Anthropic API key, it runs in mock mode. Mock mode returns a templated roadmap built from your inputs and canned coach replies that use the context. The header shows a "Mock mode" badge. With a key, it shows "Live · claude-sonnet-5".
 
-## Quick start (mock mode: no key needed)
+## Run it
 
 ```bash
+git clone https://github.com/saanviiyer/lifecoach-ai
+cd lifecoach-ai
 npm install
 npm run dev
 ```
 
-- Client (Vite): **http://localhost:5173**
-- Backend (Express + WebSocket): **http://localhost:3001**
+- Client (Vite): http://localhost:5173
+- Backend (Express and WebSocket): http://localhost:3001
 
-The Vite dev server proxies `/api` and `/ws` to the backend, so you only need to open the client URL.
-The header shows a **"Mock mode"** badge when no key is set.
+The Vite dev server sends `/api` and `/ws` to the backend. Open the client URL only.
 
-### Try the collaborative room
+To use the real Anthropic API, copy `.env.example` to `.env`, set `ANTHROPIC_API_KEY`, and restart.
 
-1. Generate a roadmap, then click **"Open shared coaching room"** (or just open the app and use a
-   `?room=<id>` link).
-2. Click **"Copy invite link"** and open it in a second browser window / tab.
-3. Enter a name in each window and chat: messages appear in both instantly, and the AI coach replies
-   to the room.
+To try a shared room, generate a roadmap and click "Open shared coaching room". You can also open the app with a `?room=<id>` link. Click "Copy invite link" and open the link in a second window. Enter a name in each window and send messages. The messages appear in both windows, and the coach replies.
 
-## Running with a real Anthropic key
+Production build:
 
 ```bash
-cp .env.example .env
-# edit .env and set ANTHROPIC_API_KEY=sk-ant-...
-npm install
-npm run dev
-```
-
-With a key present, the header shows **"Live · claude-sonnet-5"** and both roadmap generation and chat
-coaching use the Anthropic API.
-
-## Build (production client)
-
-```bash
-npm run build      # typechecks with tsc --noEmit, then builds the client to dist/
+npm run build      # tsc --noEmit, then builds the client to dist/
 npm run preview    # preview the built client
-npm start          # run the backend (serves /api + WebSocket) on PORT (default 3001)
+npm start          # NODE_ENV=production, serves API, WebSocket and client on PORT
 ```
 
----
+There is no test script.
 
-## Architecture
+### Deploy
 
-```
-lifecoach-ai/
-├── index.html              # Vite entry
-├── vite.config.ts          # dev server + proxy (/api, /ws → backend)
-├── src/                    # Frontend: Vite + React + TypeScript + Tailwind
-│   ├── App.tsx             # views: intake → roadmap → room; ?room= deep links
-│   ├── types.ts            # shared TypeScript types
-│   ├── lib/
-│   │   ├── api.ts          # REST client (roadmap, health)
-│   │   └── storage.ts      # localStorage: roadmap + objective progress
-│   └── components/
-│       ├── GoalIntake.tsx  # the goal form
-│       ├── Roadmap.tsx     # timeline + daily-objective checklist
-│       └── Room.tsx        # WebSocket collaborative chat
-└── server/                 # Backend: Node + Express + ws (ESM)
-    ├── index.js            # REST endpoints + WebSocket room server
-    └── ai.js               # Anthropic SDK calls + mock-mode fallbacks
-```
+In production, one Express process serves the built client from `dist/`, the `/api` routes and the `/ws` WebSocket on one port. `/api` and `/ws` come first. Every other path falls back to `index.html`. The host must allow WebSocket upgrades on that port.
 
-**Data flow**
-
-- **Roadmap:** client `POST /api/roadmap` → server `generateRoadmap()` → Anthropic (or mock) → JSON
-  roadmap → rendered timeline; objective checkboxes persist to `localStorage`.
-- **Chat:** client opens `ws://…/ws`, sends `{type:"join", room, name}` then `{type:"chat", text}`.
-  The server keeps each room in memory (`Map<roomId, {messages, clients, goal}>`), broadcasts every
-  message to all clients in the room, and calls `coachReply()` (Anthropic or mock) to add the coach's
-  response.
-
-**Mock mode:** `server/ai.js` checks `process.env.ANTHROPIC_API_KEY`. If unset, `MOCK_MODE` is true and
-the Anthropic client is never constructed, `generateRoadmap()` returns a structured templated roadmap
-built from the user's inputs, and `coachReply()` returns context-aware canned replies.
-
-**Ports:** backend `3001` (override with `PORT`), client dev server `5173`.
-
----
-
-## Deploy
-
-This ships as a **single service**: the Express server serves the built client (`dist/`) as static
-files and also hosts `/api` and the `/ws` WebSocket on one port. `/api` and `/ws` take precedence; every
-other path falls back to `index.html` so client routing works.
-
-### Single-service flow (any Node host)
-
-```bash
-npm install        # install deps
-npm run build      # typecheck + build the client to dist/
-npm start          # NODE_ENV=production, serves API + WebSocket + client on PORT (default 3001)
-```
-
-With no `ANTHROPIC_API_KEY`, it runs in **mock mode** (fully demoable). Set the key to go live. Make sure
-the host allows WebSocket upgrades on the same port.
-
-### Docker
-
-A multi-stage `Dockerfile` builds the client in stage 1 and runs a slim Node runtime in stage 2, serving
-API + WebSocket + static client on `$PORT` (default 3001, `EXPOSE`d). With no env keys it runs in mock
-mode; pass `ANTHROPIC_API_KEY` to go live.
+Docker. The multi-stage `Dockerfile` builds the client and then runs a slim Node image on `$PORT` (default 3001).
 
 ```bash
 docker build -t lifecoach-ai .
-docker run -p 3001:3001 lifecoach-ai                      # mock mode
-docker run -p 3001:3001 -e ANTHROPIC_API_KEY=sk-ant-... lifecoach-ai   # live
+docker run -p 3001:3001 lifecoach-ai                                  # mock mode
+docker run -p 3001:3001 -e ANTHROPIC_API_KEY=<your-key> lifecoach-ai  # live
 ```
 
-### Render (Blueprint)
+Render. `render.yaml` defines a Node web service. The build command is `npm install && npm run build` and the start command is `npm start`. Set `ANTHROPIC_API_KEY` in the dashboard (`sync: false`). Render sets `PORT`.
 
-`render.yaml` defines a Node web service, build `npm install && npm run build`, start `npm start`, with
-`ANTHROPIC_API_KEY` as a dashboard-set secret (`sync:false`). Point Render at the repo and deploy the
-Blueprint; Render injects `PORT` automatically and WebSocket upgrades work on the same origin.
+## Environment variables
 
----
+| Name | Purpose | Required |
+| --- | --- | --- |
+| `ANTHROPIC_API_KEY` | Live roadmap and coach replies. Without it, the app runs in mock mode. | Optional |
+| `PORT` | Backend port. Default is 3001. | Optional |
 
-## Notes
+## How it works
 
-- Rooms are **in-memory**: they reset when the server restarts and are reclaimed when empty. This is
-  intentional for a lightweight demo; swap in Redis/a database for persistence.
-- Model id is `claude-sonnet-5`, read server-side only. The key never reaches the browser.
+- Roadmap. The client sends `POST /api/roadmap`. The server calls `generateRoadmap()`, which uses Anthropic or the mock. The server returns a JSON roadmap.
+- Chat. The client opens `ws://.../ws` and sends `{type:"join", room, name}`, then `{type:"chat", text}`. The server keeps each room in a `Map<roomId, {messages, clients, goal}>`. It sends every message to all clients in the room and calls `coachReply()` for the coach.
+- Mock mode. `server/ai.js` checks `ANTHROPIC_API_KEY`. If the key is not set, the server does not create the Anthropic client.
 
-### Dependency audit
+## Limits
 
-`npm audit` originally reported 2 advisories in **build-time-only** transitive deps (both under `vite`):
+- Rooms are in memory. They reset when the server restarts, and the server removes empty rooms. This is on purpose for a small demo. Add Redis or a database for persistence.
+- Dependency audit. `npm audit` first reported 2 advisories in build-time dependencies under `vite`. The esbuild advisory (esbuild 0.24.2 and older, moderate, dev-server SSRF) is fixed with a `package.json` override to `esbuild ^0.25.0`. The vite advisory (vite 6.4.2 and older, high, dev-server path traversal on Windows) is accepted. Its only fix is `vite@8`, a breaking major upgrade, and the project does not take it. The advisory affects only the Vite dev server. Production serves the pre-built `dist/` through Express, so a deployed instance cannot reach that code. `npm audit` still reports 1 high advisory in the dev toolchain.
 
-- **esbuild ≤0.24.2 (moderate)**: dev-server request SSRF. **Resolved**: pinned via a `package.json`
-  `overrides` field to `esbuild ^0.25.0`. Build and mock-mode start both pass with the override.
-- **vite ≤6.4.2 (high)**: dev-server path traversal / `server.fs.deny` bypass (Windows). **Left as-is
-  and accepted.** The only fix is `vite@8` (a breaking major upgrade, applied only by `npm audit fix
-  --force`), which we deliberately do not take. This advisory affects the **Vite dev server only**. It
-  is never run in production. Production serves the pre-built static `dist/` through Express, so the
-  vulnerable dev-server code path is never reachable in a deployed instance.
+## Layout
 
-Net: `npm audit` reports 1 residual high advisory, confined to the dev toolchain and not present in the
-production runtime.
+```
+index.html              Vite entry
+vite.config.ts          dev server and proxy (/api, /ws to backend)
+src/                    Vite, React, TypeScript, Tailwind
+  App.tsx               views (intake, roadmap, room) and ?room= links
+  types.ts              shared types
+  lib/api.ts            REST client (roadmap, health)
+  lib/storage.ts        localStorage for roadmap and progress
+  components/
+    GoalIntake.tsx      goal form
+    Roadmap.tsx         timeline and daily-objective checklist
+    Room.tsx            WebSocket chat
+server/                 Node, Express, ws (ESM)
+  index.js              REST endpoints and WebSocket room server
+  ai.js                 Anthropic calls and mock fallbacks
+Dockerfile, render.yaml, .env.example
+```
